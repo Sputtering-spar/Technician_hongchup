@@ -105,7 +105,7 @@ tailwind.config={theme:{extend:{fontFamily:{sans:['Prompt','sans-serif']},colors
           </div>
 
           <div class="p-4 border border-blue-100 bg-blue-50/30 rounded-xl">
-            <span class="lbl">เวลาเริ่มซ่อม <span class="font-normal text-slate-400"></span></span>
+            <span class="lbl">เวลาเริ่มซ่อม <span class="font-normal text-slate-400">(ล็อกเป็นเวลาปัจจุบันตอนกดบันทึก แก้ไขไม่ได้)</span></span>
             <div class="grid grid-cols-[1fr_1fr] gap-2">
               <input id="s-date" class="inp" inputmode="numeric" placeholder="วว/ดด/ปปปป" maxlength="10" aria-label="วันที่เริ่มซ่อม" readonly tabindex="-1">
               <div class="flex items-center gap-1" role="group" aria-label="เวลาเริ่มซ่อม"><select id="s-h" class="inp !px-2" aria-label="ชั่วโมง" disabled></select><span class="font-bold">:</span><select id="s-m" class="inp !px-2" aria-label="นาที" disabled></select><input id="s-time" class="hidden"></div>
@@ -142,7 +142,7 @@ tailwind.config={theme:{extend:{fontFamily:{sans:['Prompt','sans-serif']},colors
       <div>Downtime: <b id="fin-min"></b> นาที <span id="fin-hint" class="text-slate-500"></span></div>
     </div>
     <div><label for="fin-cause" class="lbl">อาการเสีย / ปัญหางาน NG</label><select id="fin-cause" class="inp"></select><p class="err" id="e-fin-cause"></p></div>
-    <div id="fin-knock-box" class="hidden"><label for="fin-knock" class="lbl">จำนวนรอบการน็อค <span id="fin-knock-lock" class="font-normal text-slate-400 hidden"></span></label><input id="fin-knock" class="inp" inputmode="numeric" maxlength="4" placeholder="เช่น 3" autocomplete="off"><p class="err" id="e-fin-knock"></p></div>
+    <div id="fin-knock-box" class="hidden"><label for="fin-knock" class="lbl">จำนวนรอบการน็อค <span id="fin-knock-lock" class="font-normal text-slate-400 hidden">(ล็อก กรอกไว้แล้วตอนเริ่มซ่อม แก้ไม่ได้)</span></label><input id="fin-knock" class="inp" inputmode="numeric" maxlength="4" placeholder="เช่น 3" autocomplete="off"><p class="err" id="e-fin-knock"></p></div>
     <div><label for="fin-details" class="lbl">รายละเอียดการแก้ไข</label><textarea id="fin-details" rows="4" class="inp" placeholder="ขั้นตอนการตรวจสอบ การแก้ไข หรืออะไหล่ที่เปลี่ยน"></textarea><p class="err" id="e-fin-details"></p></div>
     <p id="fin-err" class="err" role="alert"></p>
     <div class="flex gap-2">
@@ -313,6 +313,7 @@ function parseDT(ds, ts){
 const fmtDate = dt => `${pad(dt.getDate())}/${pad(dt.getMonth()+1)}/${dt.getFullYear()}`;
 const fmtTime = dt => `${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
 const isoDate = dt => `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
+const minsBetween=(a,b)=>Math.max(0,Math.floor(b/60000)-Math.floor(a/60000));   // นับตามนาทีบนนาฬิกา ตรงกับเวลาที่แสดง
 const fmtDur = m => m>=60 ? `${Math.floor(m/60)} ชม. ${m%60} นาที` : `${m} นาที`;
 
 function resetForm(){
@@ -445,7 +446,7 @@ $('wait-list').addEventListener('click',async e=>{
     const now=Date.now();
     const r=await api('ready',{id:j.id,dept:j.dept,readyTs:now,readyBy:user.name});
     if(!r||!r.ok) throw new Error((r&&r.error)||'ตอบกลับไม่ถูกต้อง');
-    const mins=Math.max(0,Math.round((now-j.finishTs)/60000));
+    const mins=minsBetween(j.finishTs,now);
     $('modal-title').textContent='บันทึกเครื่องกลับมาใช้งานแล้ว';
     $('modal-msg').textContent=`เครื่อง ${j.machine} พร้อมใช้งานเวลา ${fmtTime(new Date(now))} น. (รอหลังซ่อมเสร็จ ${fmtDur(mins)})`;
     $('modal').classList.replace('hidden','flex'); $('modal-ok').focus();
@@ -458,7 +459,7 @@ setInterval(()=>{ if(!$('main-view').classList.contains('hidden')){ renderPendin
 let finId=null, finTimer=null;
 function finPreview(){
   const job=findJob(finId); if(!job) return null;
-  const n=new Date(), mins=Math.max(0,Math.round((n.getTime()-job.startTs)/60000));
+  const n=new Date(), mins=minsBetween(job.startTs,n.getTime());
   $('fin-now').textContent=`${fmtDate(n)} ${fmtTime(n)}`;
   $('fin-min').textContent=mins; $('fin-hint').textContent=mins>=60?`(= ${fmtDur(mins)})`:'';
   return job;
@@ -487,7 +488,7 @@ $('fin-form').addEventListener('submit',e=>{
   $('e-fin-details').textContent=details?'':'กรอกรายละเอียดการแก้ไข';
   $('e-fin-knock').textContent=(needK&&!knock)?'กรอกจำนวนรอบการน็อค':'';
   if(!cause||!details||(needK&&!knock)) return;
-  const f=new Date(), s=new Date(Number(job.startTs)), mins=Math.round((f-s)/60000);
+  const f=new Date(), s=new Date(Number(job.startTs)), mins=minsBetween(s.getTime(),f.getTime());
   if(mins<0){ $('fin-err').textContent='เวลาเริ่มซ่อมอยู่หลังเวลาปัจจุบัน กรุณายกเลิกงานนี้แล้วเริ่มใหม่'; return }
 
   const rec=LS.get('records',[]);
