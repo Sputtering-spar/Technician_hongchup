@@ -334,7 +334,7 @@ $('repair-form').addEventListener('submit', async e=>{
   btn.disabled=false;
   const pend=LS.get('pending',[]); pend.unshift(job); LS.set('pending',pend);
   $('modal-title').textContent='บันทึกเริ่มซ่อมแล้ว';
-  $('modal-msg').textContent=`เครื่อง ${machine} เริ่มซ่อมเวลา ${fmtTime(new Date(job.startTs))} น. ส่งขึ้นชีตแล้ว ซ่อมเสร็จให้กดปุ่ม “ซ่อมเสร็จ” ที่รายการด้านบน`;
+  $('modal-msg').textContent=`เครื่อง ${machine} เริ่มซ่อมเวลา ${fmtTime(new Date(job.startTs))} น.ซ่อมเสร็จให้กดปุ่ม “ซ่อมเสร็จ” ที่รายการด้านบน`;
   $('modal').classList.replace('hidden','flex'); $('modal-ok').focus();
   resetForm(); renderPending(); refreshOpen();
 });
