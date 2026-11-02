@@ -159,7 +159,7 @@ const EMPLOYEES = {
   '8861': { name: 'พัฒนบดินทร์ สิทธิบูรณ์', dept: 'ห้องชุบ', hash: '15a89e089c4e539c42c9f9a473c8a5f7205197be20a01a1dc9f2354db0d99a24' },
   '5777': { name: 'Narumon Monaon', dept: 'ห้องชุบ', hash: '30ede7bf578b0edc5a385fae8900e193a2938920c25096383c29be30500c8db5' },
 };
-const CAUSES = ["เปลี่ยนนิคเกิล","ซี่แตก","ค่าไม่ผ่าน","ชุบซ้ำ","กรงติด",'อื่นๆ'];
+const CAUSES = ['อื่นๆ'];
 
 /*SHA*/
 const K=[],H0=[];
@@ -434,7 +434,7 @@ $('fin-form').addEventListener('submit',e=>{
 
   const rec=LS.get('records',[]);
   rec.unshift({id:job.id, date:job.date, dept:job.dept, shift:job.shift, machine:job.machine, cause, start:fmtTime(s), finish:fmtTime(f),
-               startTs:s.getTime(), finishTs:f.getTime(), finishDate:isoDate(f), minutes:mins, details, knocks:'', empName:job.empName, empId:job.empId||idOfName(job.empName), status:'ซ่อมเสร็จ', synced:false});
+               startTs:s.getTime(), finishTs:f.getTime(), finishDate:isoDate(f), minutes:mins, details, knocks:'', empName:job.empName, empId:job.empId||idOfName(job.empName), status:'ซ่อมเสร็จ', finishBy:user.name, synced:false});
   LS.set('records',rec);
   LS.set('pending',LS.get('pending',[]).filter(r=>!sameId(r.id,job.id)));
   closeFin(); renderPending(); renderList();
