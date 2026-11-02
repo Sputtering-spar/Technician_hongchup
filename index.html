@@ -346,11 +346,17 @@ const api=async(action,record)=>{
 async function refreshOpen(){
   if(!API_URL||!user||refreshing) return;
   refreshing=true;
+  const t0=Date.now();
   try{
     const res=await fetch(`${API_URL}?action=open&token=${encodeURIComponent(API_TOKEN)}&dept=${encodeURIComponent(deptOf(user.id))}`);
     const j=await res.json();
     if(j&&j.ok){
-      LS.set('open',(j.jobs||[]).map(x=>({...x,startTs:Number(x.startTs)||0,finishTs:Number(x.finishTs)||0})));
+      const jobs=(j.jobs||[]).map(x=>({...x,startTs:Number(x.startTs)||0,finishTs:Number(x.finishTs)||0}));
+      LS.set('open',jobs);
+      // งานที่เริ่มจากเครื่องนี้ แต่ชีตไม่มีในรายการ "กำลังซ่อม" แล้ว = มีคนอื่นกดซ่อมเสร็จ/ยกเลิกไปแล้ว ลบออกจากเครื่องนี้
+      // (เว้นงานที่เพิ่งเริ่มหลังจากเริ่มดึงรายการ กันคำตอบเก่าตีกัน)
+      const lp=LS.get('pending',[]), keep=lp.filter(x=>Number(x.startTs)>=t0||jobs.some(s=>sameId(s.id,x.id)));
+      if(keep.length!==lp.length) LS.set('pending',keep);
       $('open-st').textContent='อัปเดตรายการล่าสุด '+fmtTime(new Date());
     } else $('open-st').textContent='ดึงรายการจากระบบไม่สำเร็จ: '+((j&&j.error)||'ตอบกลับไม่ถูกต้อง');
   }catch(e){ $('open-st').textContent='ไม่มีสัญญาณ แสดงเฉพาะรายการในเครื่องนี้' }
