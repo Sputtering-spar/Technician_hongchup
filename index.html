@@ -128,10 +128,11 @@ tailwind.config={theme:{extend:{fontFamily:{sans:['Prompt','sans-serif']},colors
     <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm space-y-1">
       <div>เครื่องจักร: <b id="fin-machine"></b></div>
       <div>เริ่มซ่อม: <b id="fin-start"></b></div>
+      <div id="fin-cause-line" class="hidden">สาเหตุ: <b id="fin-cause-show"></b></div>
       <div>ซ่อมเสร็จ: <b id="fin-now"></b> <span class="text-slate-500">(เวลาที่กดบันทึก)</span></div>
       <div>Downtime: <b id="fin-min"></b> นาที <span id="fin-hint" class="text-slate-500"></span></div>
     </div>
-    <div><label for="fin-cause" class="lbl">อาการเสีย</label><select id="fin-cause" class="inp"></select><p class="err" id="e-fin-cause"></p></div>
+    <div id="fin-cause-box"><label for="fin-cause" class="lbl">อาการเสีย</label><select id="fin-cause" class="inp"></select><p class="err" id="e-fin-cause"></p></div>
     <div><label for="fin-details" class="lbl">รายละเอียดการแก้ไข</label><textarea id="fin-details" rows="4" class="inp" placeholder="ขั้นตอนการตรวจสอบ การแก้ไข หรืออะไหล่ที่เปลี่ยน"></textarea><p class="err" id="e-fin-details"></p></div>
     <p id="fin-err" class="err" role="alert"></p>
     <div class="flex gap-2">
@@ -159,7 +160,7 @@ const EMPLOYEES = {
   '8861': { name: 'พัฒนบดินทร์ สิทธิบูรณ์', dept: 'ห้องชุบ', hash: '15a89e089c4e539c42c9f9a473c8a5f7205197be20a01a1dc9f2354db0d99a24' },
   '5777': { name: 'Narumon Monaon', dept: 'ห้องชุบ', hash: '30ede7bf578b0edc5a385fae8900e193a2938920c25096383c29be30500c8db5' },
 };
-const CAUSES = ['อื่นๆ'];
+const CAUSES = ["เปลี่ยนนิกเกิล","ซี่กรงแตก","ค่าไม่ผ่าน","ชุบซ้ำ","กรงติด",'อื่นๆ'];
 
 /*SHA*/
 const K=[],H0=[];
@@ -313,8 +314,8 @@ $('repair-form').addEventListener('submit', async e=>{
   $('e-shift').textContent = $('shift').value?'':'เลือกกะ';
   $('e-dept').textContent = $('dept').value?'':'เลือกแผนก';
   $('e-start').textContent = s?'':'อ่านเวลาไม่สำเร็จ กรุณาลองใหม่';
-  $('e-category').textContent='';
-  if(!machine||!$('shift').value||!$('dept').value||!s) return;
+  $('e-category').textContent = cause?'':'เลือกสาเหตุ';
+  if(!machine||!$('shift').value||!$('dept').value||!s||!cause) return;
   const job={id:Date.now(),date:isoDate(s),dept:$('dept').value,shift:$('shift').value,machine,cause,startTs:s.getTime(),empName:user.name,empId:user.id};
   const btn=$('start-btn'); btn.disabled=true;
   try{
@@ -416,6 +417,8 @@ function openFin(id){
   $('fin-machine').textContent=job.machine; $('fin-start').textContent=`${fmtDate(s)} ${fmtTime(s)}`;
   $('fin-cause').value=job.cause||''; $('fin-details').value='';
   $('fin-cause').disabled=false;
+  $('fin-cause-box').classList.toggle('hidden',!!job.cause);   // คนเริ่มซ่อมเลือกสาเหตุไว้แล้ว ไม่ต้องถามซ้ำ
+  $('fin-cause-line').classList.toggle('hidden',!job.cause); $('fin-cause-show').textContent=job.cause||'';
   $('e-fin-cause').textContent=''; $('e-fin-details').textContent=''; $('fin-err').textContent='';
   finPreview(); clearInterval(finTimer); finTimer=setInterval(finPreview,15000);
   $('fin-modal').classList.replace('hidden','flex'); $('fin-details').focus();
@@ -425,7 +428,7 @@ $('fin-cancel').onclick=closeFin;
 $('fin-form').addEventListener('submit',e=>{
   e.preventDefault();
   const job=findJob(finId); if(!job){ closeFin(); return }
-  const cause=$('fin-cause').value, details=$('fin-details').value.trim();
+  const cause=job.cause||$('fin-cause').value, details=$('fin-details').value.trim();
   $('e-fin-cause').textContent=cause?'':'เลือกสาเหตุ';
   $('e-fin-details').textContent=details?'':'กรอกรายละเอียดการแก้ไข';
   if(!cause||!details) return;
