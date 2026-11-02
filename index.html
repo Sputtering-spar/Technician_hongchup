@@ -80,14 +80,6 @@ tailwind.config={theme:{extend:{fontFamily:{sans:['Prompt','sans-serif']},colors
         <div id="pending-list" class="px-6 divide-y divide-amber-200"></div>
       </div>
 
-      <!-- ซ่อมเสร็จแล้ว รอเครื่องกลับมาใช้งาน -->
-      <div id="wait-box" class="hidden bg-sky-50 rounded-xl shadow-sm border border-sky-200">
-        <div class="px-6 py-3 border-b border-sky-200 rounded-t-xl">
-          <h2 class="text-lg font-bold text-sky-900"><i class="fa-solid fa-hourglass-half mr-2"></i>ซ่อมเสร็จแล้ว รอเครื่องกลับมาใช้งาน (<span id="w-n">0</span>)</h2>
-        </div>
-        <div id="wait-list" class="px-6 divide-y divide-sky-200"></div>
-      </div>
-
       <!-- ฟอร์มเริ่มซ่อม -->
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 fade-in">
         <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 rounded-t-xl">
@@ -100,7 +92,6 @@ tailwind.config={theme:{extend:{fontFamily:{sans:['Prompt','sans-serif']},colors
             <div><label for="shift" class="lbl">กะ</label><select id="shift" class="inp"><option value="">-- เลือกกะ --</option><option>A</option><option>B</option></select><p class="err" id="e-shift"></p></div>
             <div><label for="machine-id" class="lbl">รหัสเครื่องจักร</label><div class="flex"><span id="machine-prefix" class="inline-flex items-center px-4 bg-slate-200 text-slate-700 border border-r-0 border-slate-300 rounded-l-lg font-bold text-lg"></span><input id="machine-id" class="inp !rounded-l-none" inputmode="numeric" maxlength="3" placeholder="เลข 3 หลัก เช่น 019" autocomplete="off"></div><div id="chips" class="flex gap-2 flex-wrap mt-2"></div><p class="err" id="e-machine"></p></div>
             <div><label for="category" class="lbl">สาเหตุของการซ่อม</label><select id="category" class="inp"></select><p class="err" id="e-category"></p></div>
-            <div id="d-knock-box" class="hidden"><label for="d-knock" class="lbl">จำนวนรอบการน็อค <span class="font-normal text-slate-400" id="d-knock-opt"></span></label><input id="d-knock" class="inp" inputmode="numeric" maxlength="4" placeholder="เช่น 3" autocomplete="off"><p class="err" id="e-d-knock"></p></div>
           </div>
 
           <div class="p-4 border border-blue-100 bg-blue-50/30 rounded-xl">
@@ -141,7 +132,6 @@ tailwind.config={theme:{extend:{fontFamily:{sans:['Prompt','sans-serif']},colors
       <div>Downtime: <b id="fin-min"></b> นาที <span id="fin-hint" class="text-slate-500"></span></div>
     </div>
     <div><label for="fin-cause" class="lbl">อาการเสีย</label><select id="fin-cause" class="inp"></select><p class="err" id="e-fin-cause"></p></div>
-    <div id="fin-knock-box" class="hidden"><label for="fin-knock" class="lbl">จำนวนรอบการน็อค <span id="fin-knock-lock" class="font-normal text-slate-400 hidden"></span></label><input id="fin-knock" class="inp" inputmode="numeric" maxlength="4" placeholder="เช่น 3" autocomplete="off"><p class="err" id="e-fin-knock"></p></div>
     <div><label for="fin-details" class="lbl">รายละเอียดการแก้ไข</label><textarea id="fin-details" rows="4" class="inp" placeholder="ขั้นตอนการตรวจสอบ การแก้ไข หรืออะไหล่ที่เปลี่ยน"></textarea><p class="err" id="e-fin-details"></p></div>
     <p id="fin-err" class="err" role="alert"></p>
     <div class="flex gap-2">
@@ -169,9 +159,7 @@ const EMPLOYEES = {
   '8861': { name: 'พัฒนบดินทร์ สิทธิบูรณ์', dept: 'ห้องชุบ', hash: '15a89e089c4e539c42c9f9a473c8a5f7205197be20a01a1dc9f2354db0d99a24' },
   '5777': { name: 'Narumon Monaon', dept: 'ห้องชุบ', hash: '30ede7bf578b0edc5a385fae8900e193a2938920c25096383c29be30500c8db5' },
 };
-const CAUSES = ['เครื่องน็อค', 'อื่นๆ'];
-const KNOCK_CAUSE = 'เครื่องน็อค';      // เลือกสาเหตุนี้แล้วต้องกรอกจำนวนรอบการน็อค
-const ST_WAIT = 'เครื่องชุบใช้ไม่ได้';   // ต้องตรงกับ S_WAIT ใน Apps Script
+const CAUSES = ["เปลี่ยนนิคเกิล","ซี่แตก","ค่าไม่ผ่าน","ชุบซ้ำ","กรงติด",'อื่นๆ'];
 
 /*SHA*/
 const K=[],H0=[];
@@ -224,15 +212,6 @@ $('machine-id').addEventListener('input',e=>{ e.target.value=e.target.value.repl
 const causeOpts = '<option value="">-- เลือกสาเหตุ --</option>' + CAUSES.map(c=>`<option>${c}</option>`).join('');
 $('category').innerHTML = causeOpts;
 $('fin-cause').innerHTML = causeOpts;
-
-/* ช่องจำนวนรอบการน็อค: แสดงเฉพาะเมื่อเลือกสาเหตุ "เครื่องน็อค" */
-['d-knock','fin-knock'].forEach(id=>$(id).addEventListener('input',e=>{ e.target.value=e.target.value.replace(/\D/g,'').slice(0,4) }));
-function syncKnock(){
-  $('d-knock-box').classList.toggle('hidden', $('category').value!==KNOCK_CAUSE);
-  $('fin-knock-box').classList.toggle('hidden', $('fin-cause').value!==KNOCK_CAUSE);
-}
-$('category').addEventListener('change',syncKnock);
-$('fin-cause').addEventListener('change',syncKnock);
 
 const esc = v => String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dmy = iso => iso.split('-').reverse().join('/');
@@ -319,25 +298,24 @@ function resetForm(){
   $('repair-form').reset(); setNowStart();
   $('dept').innerHTML = `<option>${esc(deptOf(user.id))}</option>`;
   document.querySelectorAll('#repair-form .err').forEach(e=>e.textContent='');
-  syncKnock();
 }
 
 /* ===== ขั้นที่ 1: บันทึกเริ่มซ่อม (ต้องส่งขึ้นชีตสำเร็จก่อน ถึงจะเริ่มงานได้) ===== */
 const recBase=(job,extra)=>({id:job.id,date:job.date,dept:job.dept,shift:job.shift,machine:job.machine,cause:job.cause||'',
-  start:fmtTime(new Date(Number(job.startTs))),startTs:Number(job.startTs),finish:'',finishDate:'',minutes:'',details:'',knocks:job.knocks??'',empName:job.empName,empId:job.empId,status:'กำลังซ่อม',...extra});
+  start:fmtTime(new Date(Number(job.startTs))),startTs:Number(job.startTs),finish:'',finishDate:'',minutes:'',details:'',knocks:'',empName:job.empName,empId:job.empId,status:'กำลังซ่อม',...extra});
 $('repair-form').addEventListener('submit', async e=>{
   e.preventDefault();
   setNowStart();   // เวลาเริ่ม = เวลาที่กดบันทึกจริง
   const mDigits=$('machine-id').value.replace(/\D/g,''), machine=mDigits?MACHINE_PREFIX+mDigits.padStart(MACHINE_DIGITS,'0'):'';
   const s=parseDT($('s-date').value,$('s-time').value);
-  const cause=$('category').value, knock=$('d-knock').value.trim(), needK=cause===KNOCK_CAUSE;
+  const cause=$('category').value;
   $('e-machine').textContent = machine?'':'กรอกเลขเครื่องจักร';
   $('e-shift').textContent = $('shift').value?'':'เลือกกะ';
   $('e-dept').textContent = $('dept').value?'':'เลือกแผนก';
   $('e-start').textContent = s?'':'อ่านเวลาไม่สำเร็จ กรุณาลองใหม่';
-  $('e-category').textContent=''; $('e-d-knock').textContent='';
+  $('e-category').textContent='';
   if(!machine||!$('shift').value||!$('dept').value||!s) return;
-  const job={id:Date.now(),date:isoDate(s),dept:$('dept').value,shift:$('shift').value,machine,cause,knocks:(needK&&knock)?+knock:'',startTs:s.getTime(),empName:user.name,empId:user.id};
+  const job={id:Date.now(),date:isoDate(s),dept:$('dept').value,shift:$('shift').value,machine,cause,startTs:s.getTime(),empName:user.name,empId:user.id};
   const btn=$('start-btn'); btn.disabled=true;
   try{
     const r=await api('save',recBase(job));
@@ -385,16 +363,12 @@ function jobsView(){
     ...lp.filter(j=>!srvStatus(j.id)||srvStatus(j.id)==='กำลังซ่อม'),
     ...srv.filter(j=>j.status==='กำลังซ่อม'&&!has(lp,j.id)&&!has(rec,j.id))
   ];
-  const waiting=[
-    ...srv.filter(j=>j.status===ST_WAIT),
-    ...rec.filter(r=>!r.synced&&!has(srv,r.id)).map(r=>({...r,status:ST_WAIT,finishTs:r.finishTs||tsOf(r.finishDate||r.date,r.finish)}))
-  ];
-  return {repairing,waiting};
+  return {repairing};
 }
 const findJob=id=>jobsView().repairing.find(j=>sameId(j.id,id));
-const causeTxt=r=>esc(r.cause||'')+(r.knocks!==''&&r.knocks!=null?` · น็อค ${esc(r.knocks)} รอบ`:'');
+const causeTxt=r=>esc(r.cause||'');
 function renderPending(){
-  const {repairing:p,waiting:w}=jobsView();
+  const {repairing:p}=jobsView();
   $('pending-box').classList.toggle('hidden',!p.length);
   $('p-n').textContent=p.length;
   $('pending-list').innerHTML = p.map(r=>{
@@ -407,16 +381,6 @@ function renderPending(){
         <button data-fin="${r.id}" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold"><i class="fa-solid fa-check"></i> ซ่อมเสร็จ</button>
         <button data-cancel="${r.id}" class="text-xs text-red-600 underline">ยกเลิกงานนี้</button>
       </div></div>`;
-  }).join('');
-  $('wait-box').classList.toggle('hidden',!w.length);
-  $('w-n').textContent=w.length;
-  $('wait-list').innerHTML = w.map(r=>{
-    const f=new Date(Number(r.finishTs)), el=Math.max(0,Math.round((Date.now()-r.finishTs)/60000));
-    return `<div class="py-3 flex gap-3 justify-between items-center">
-      <div class="min-w-0"><div class="font-semibold">${esc(r.machine)} <span class="font-normal text-slate-600">· ${causeTxt(r)}</span></div>
-      <div class="text-xs text-slate-600">ซ่อมเสร็จ ${fmtDate(f)} ${fmtTime(f)} · กะที่เริ่มซ่อม ${esc(r.shift)} · ${esc(r.empName)}</div>
-      <div class="text-xs text-sky-700 font-medium">รอมาแล้ว ${fmtDur(el)}</div></div>
-      <button data-ready="${r.id}" class="shrink-0 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-semibold"><i class="fa-solid fa-power-off"></i> เครื่องกลับมาใช้งานได้</button></div>`;
   }).join('');
 }
 $('pending-list').addEventListener('click',async e=>{
@@ -435,23 +399,6 @@ $('pending-list').addEventListener('click',async e=>{
     renderPending(); refreshOpen();
   }
 });
-$('wait-list').addEventListener('click',async e=>{
-  const b=e.target.closest('button'); if(!b||!b.dataset.ready) return;
-  const j=jobsView().waiting.find(x=>sameId(x.id,b.dataset.ready)); if(!j) return;
-  if(!confirm(`ยืนยัน: เครื่อง ${j.machine} กลับมาใช้งานได้แล้วตอนนี้ (${fmtTime(new Date())} น.)?`)) return;
-  b.disabled=true;
-  try{
-    await syncPending();   // ถ้ายังมีงานซ่อมเสร็จที่ค้างส่งอยู่ ส่งก่อน
-    const now=Date.now();
-    const r=await api('ready',{id:j.id,dept:j.dept,readyTs:now,readyBy:user.name});
-    if(!r||!r.ok) throw new Error((r&&r.error)||'ตอบกลับไม่ถูกต้อง');
-    const mins=minsBetween(j.finishTs,now);
-    $('modal-title').textContent='บันทึกเครื่องกลับมาใช้งานแล้ว';
-    $('modal-msg').textContent=`เครื่อง ${j.machine} พร้อมใช้งานเวลา ${fmtTime(new Date(now))} น. (รอหลังซ่อมเสร็จ ${fmtDur(mins)})`;
-    $('modal').classList.replace('hidden','flex'); $('modal-ok').focus();
-  }catch(err){ alert('บันทึกไม่สำเร็จ ต้องมีสัญญาณอินเทอร์เน็ต ('+(err.message||err)+')'); b.disabled=false }
-  await refreshOpen();
-});
 setInterval(()=>{ if(!$('main-view').classList.contains('hidden')){ renderPending(); refreshOpen() } },30000);
 
 /* ===== ขั้นที่ 2: บันทึกซ่อมเสร็จ (เวลาเสร็จ = เวลาที่กดบันทึก แก้เองไม่ได้) ===== */
@@ -468,10 +415,7 @@ function openFin(id){
   const s=new Date(Number(job.startTs));
   $('fin-machine').textContent=job.machine; $('fin-start').textContent=`${fmtDate(s)} ${fmtTime(s)}`;
   $('fin-cause').value=job.cause||''; $('fin-details').value='';
-  const kLocked=job.knocks!==''&&job.knocks!=null;   // คนเริ่มซ่อมกรอกรอบน็อคไว้แล้ว ล็อกไม่ให้คนปิดงานแก้
-  $('fin-knock').value=job.knocks??''; $('fin-knock').readOnly=kLocked; $('fin-cause').disabled=kLocked;
-  $('fin-knock-lock').classList.toggle('hidden',!kLocked);
-  $('e-fin-knock').textContent=''; syncKnock();
+  $('fin-cause').disabled=false;
   $('e-fin-cause').textContent=''; $('e-fin-details').textContent=''; $('fin-err').textContent='';
   finPreview(); clearInterval(finTimer); finTimer=setInterval(finPreview,15000);
   $('fin-modal').classList.replace('hidden','flex'); $('fin-details').focus();
@@ -481,18 +425,16 @@ $('fin-cancel').onclick=closeFin;
 $('fin-form').addEventListener('submit',e=>{
   e.preventDefault();
   const job=findJob(finId); if(!job){ closeFin(); return }
-  const cause=$('fin-cause').value, details=$('fin-details').value.trim(), knock=$('fin-knock').value.trim();
-  const needK = cause===KNOCK_CAUSE;
+  const cause=$('fin-cause').value, details=$('fin-details').value.trim();
   $('e-fin-cause').textContent=cause?'':'เลือกสาเหตุ';
   $('e-fin-details').textContent=details?'':'กรอกรายละเอียดการแก้ไข';
-  $('e-fin-knock').textContent=(needK&&!knock)?'กรอกจำนวนรอบการน็อค':'';
-  if(!cause||!details||(needK&&!knock)) return;
+  if(!cause||!details) return;
   const f=new Date(), s=new Date(Number(job.startTs)), mins=minsBetween(s.getTime(),f.getTime());
   if(mins<0){ $('fin-err').textContent='เวลาเริ่มซ่อมอยู่หลังเวลาปัจจุบัน กรุณายกเลิกงานนี้แล้วเริ่มใหม่'; return }
 
   const rec=LS.get('records',[]);
   rec.unshift({id:job.id, date:job.date, dept:job.dept, shift:job.shift, machine:job.machine, cause, start:fmtTime(s), finish:fmtTime(f),
-               startTs:s.getTime(), finishTs:f.getTime(), finishDate:isoDate(f), minutes:mins, details, knocks:needK?+knock:'', empName:job.empName, empId:job.empId||idOfName(job.empName), status:'ซ่อมเสร็จ', synced:false});
+               startTs:s.getTime(), finishTs:f.getTime(), finishDate:isoDate(f), minutes:mins, details, knocks:'', empName:job.empName, empId:job.empId||idOfName(job.empName), status:'ซ่อมเสร็จ', synced:false});
   LS.set('records',rec);
   LS.set('pending',LS.get('pending',[]).filter(r=>!sameId(r.id,job.id)));
   closeFin(); renderPending(); renderList();
@@ -502,7 +444,7 @@ $('fin-form').addEventListener('submit',e=>{
   $('modal').classList.replace('hidden','flex'); $('modal-ok').focus();
   syncPending().then(ok=>{
     if(ok!==null) $('modal-msg').textContent = ok
-      ? 'ส่งข้อมูลขึ้นระบบเรียบร้อยแล้ว เครื่องนี้ไปอยู่ในรายการ “รอเครื่องกลับมาใช้งาน” เมื่อเครื่องพร้อมให้ใครก็ได้กดปุ่มในรายการนั้น'
+      ? 'ส่งข้อมูลขึ้นระบบเรียบร้อยแล้ว'
       : 'บันทึกในเครื่องแล้ว แต่ยังส่งขึ้นระบบไม่สำเร็จ ระบบจะลองส่งซ้ำให้อัตโนมัติเมื่อมีสัญญาณ'+(lastErr?' (สาเหตุ: '+lastErr+')':'');
     renderList(); refreshOpen();
   });
@@ -537,7 +479,7 @@ function renderList(){
   $('k-n').textContent=t.length; $('k-m').textContent=t.reduce((a,r)=>a+r.minutes,0);
   $('list').innerHTML = rec.length ? rec.slice(0,10).map(r=>`
     <div class="py-3 flex gap-3 justify-between items-start">
-      <div class="min-w-0"><div class="font-semibold">${esc(r.machine)} <span class="font-normal text-slate-500">· ${esc(r.cause)}${r.knocks!==''&&r.knocks!=null?` · น็อค ${esc(r.knocks)} รอบ`:''}</span></div>
+      <div class="min-w-0"><div class="font-semibold">${esc(r.machine)} <span class="font-normal text-slate-500">· ${esc(r.cause)}</span></div>
       <div class="text-xs text-slate-500">${dmy(r.date)} · ${r.start}–${r.finish} · กะ ${esc(r.shift)}${r.dept?' · '+esc(r.dept):''}${API_URL&&!r.synced?' · <span class="text-amber-600">ยังไม่ส่งขึ้นระบบ</span>':''}</div></div>
       <div class="text-right shrink-0"><div class="font-bold">${r.minutes} นาที</div><button data-del="${r.id}" class="text-xs text-red-600 underline">ลบ</button></div>
     </div>`).join('') : '<p class="text-center text-slate-400 py-8">ยังไม่มีรายการ</p>';
@@ -556,8 +498,8 @@ $('export').onclick=()=>{
   const rec=LS.get('records',[]); if(!rec.length){ alert('ยังไม่มีรายการให้ส่งออก'); return }
   if(!confirm('ส่งออกข้อมูลทั้งหมดเป็นไฟล์ CSV?')) return;
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
-  const head=['วันที่','กะ','เครื่องจักร','สาเหตุ','เวลาเริ่มเสีย','เวลาซ่อมเสร็จ','Downtime (นาที)','การแก้ไข','ผู้รับผิดชอบ','แผนก','จำนวนรอบน็อค'];
-  const rows=[...rec].reverse().map(r=>[dmy(r.date),r.shift,r.machine,r.cause,r.start,r.finish,r.minutes,r.details,r.empName,r.dept,r.knocks??''].map(q).join(','));
+  const head=['วันที่','กะ','เครื่องจักร','สาเหตุ','เวลาเริ่มเสีย','เวลาซ่อมเสร็จ','Downtime (นาที)','การแก้ไข','ผู้รับผิดชอบ','แผนก'];
+  const rows=[...rec].reverse().map(r=>[dmy(r.date),r.shift,r.machine,r.cause,r.start,r.finish,r.minutes,r.details,r.empName,r.dept].map(q).join(','));
   const blob=new Blob(['\ufeff'+[head.map(q).join(','),...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='breakdown-'+isoDate(new Date())+'.csv'; a.click();
 };
